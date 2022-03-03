@@ -1,7 +1,7 @@
 ---
 title: "HW3"
 author: "Tuul Purevjav"
-date: "2/25/2022"
+date: "3/02/2022"
 output: html_document
 knit: (function(input_file, encoding) {
   out_dir <- 'docs';
@@ -14,22 +14,49 @@ knit: (function(input_file, encoding) {
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-## R Markdown
+We're planning to move to Washington state this summer.  The approximate area we'd like to move to is in King county.  We have two school-age kids and choosing a school for them is our starting point.  For this assignment, I made an interactive map showing 534, K-12 public schools in King county. On the map each school marker has a pop-up feature showing school name, address, phone and the school district information.  Once I choose a school I can potentially find housing close to the school by surveying the surrounding area.  My data source is at https://geo.wa.gov/datasets/k12wa::washington-state-public-schools/about. 
 
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
-
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
-
-```{r cars}
-summary(cars)
+```{r message = FALSE}
+library(tidyverse)
+library(leaflet)
 ```
 
-## Including Plots
-
-You can also embed plots, for example:
-
-```{r pressure, echo=FALSE}
-plot(pressure)
+```{r}
+# prepare the data
+datain <- read.csv("Washington_State_Public_Schools.csv")
+datain <- datain %>% 
+  select(Latitude, Longitude, Name =`SchoolName`, District=`LEAName`, Address=`PhysicalAddress`, County, Phone) 
 ```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+```{r}
+# filter the data for King County
+school <- datain %>% filter(County == 'King')
+```
+
+
+```{r}
+# display school information
+labs <- lapply(seq(nrow(school)), 
+               function(i) {
+  paste0( "", "Name: ",as.character(school[i, "Name"]), '<br>',
+          "Address: ", as.character(school[i, "Address"]), '<br>',
+          "Phone: ", as.character(school[i, "Phone"]), '<br>',
+          "District: ",as.character(school[i, "District"]), '<br>',
+          '' ) 
+})
+```
+
+Since I have lot of data points that are close to each other, I used addAwesomeMarkers() function with clusterOptions argument, so that my map doesn't look too busy.  I also chose the default tile that addTiles() gives because it shows the surrounding areas with greater details with colors.  
+```{r}
+# create map with `leaflet`
+map <- leaflet(school) %>%
+  addTiles() %>%
+  addAwesomeMarkers(~Longitude, ~Latitude,
+                    label = ~lapply(labs, htmltools::HTML),
+                    clusterOptions = markerClusterOptions())
+map
+```
+
+
+
+
